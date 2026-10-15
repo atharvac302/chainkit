@@ -1,0 +1,89 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Project {
+  id                 String             @id @default(cuid())
+  name               String
+  createdAt          DateTime           @default(now())
+  apiKeys            ApiKey[]
+  records            Record[]
+  idempotencyEntries IdempotencyEntry[]
+
+  @@map("projects")
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  projectId   String
+  prefix      String
+  secretHash  String
+  environment String    @default("sandbox")
+  status      String    @default("active")
+  scopes      String    @default("*")
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status])
+  @@index([prefix])
+  @@map("api_keys")
+}
+
+model Record {
+  id                String        @id @default(cuid())
+  projectId         String
+  type              String
+  externalReference String?
+  contentHash       String
+  status            String        @default("created")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  project           Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  transactions      Transaction[]
+
+  @@index([projectId, createdAt])
+  @@index([projectId, status])
+  @@index([contentHash])
+  @@map("records")
+}
+
+model Transaction {
+  id              String    @id @default(cuid())
+  recordId        String
+  chainId         Int
+  transactionHash String?
+  status          String    @default("created")
+  attempts        Int       @default(0)
+  lastErrorCode   String?
+  submittedAt     DateTime?
+  confirmedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  record          Record    @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@index([recordId])
+  @@index([transactionHash])
+  @@map("transactions")
+}
+
+model IdempotencyEntry {
+  id           String   @id @default(cuid())
+  projectId    String
+  key          String
+  requestHash  String
+  recordId     String?
+  responseBody String?
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, key])
+  @@index([expiresAt])
+  @@map("idempotency_entries")
+}
