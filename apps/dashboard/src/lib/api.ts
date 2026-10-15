@@ -90,6 +90,20 @@ export interface VerificationResult {
   verifiedAt: string;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  token: string;
+  expiresAt: string;
+  user: User;
+  projects: Array<{ id: string; name: string; apiKeysCount?: number }>;
+}
+
 export class ApiError extends Error {
   code: string;
   status: number;
@@ -107,8 +121,9 @@ export class ApiError extends Error {
 const API_ROOT = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const API_BASE = API_ROOT.endsWith('/v1') ? API_ROOT : `${API_ROOT}/v1`;
 
-// In-memory API key store (replaces insecure localStorage)
+// Session token and in-memory credential store
 let inMemoryApiKey: string | null = null;
+let inMemorySessionToken: string | null = null;
 
 export function setApiKey(key: string): void {
   inMemoryApiKey = key;
@@ -118,6 +133,24 @@ export function getApiKey(): string | null {
   return inMemoryApiKey;
 }
 
+export function setSessionToken(token: string | null): void {
+  inMemorySessionToken = token;
+  if (typeof window !== 'undefined') {
+    if (token) {
+      sessionStorage.setItem('chainkit_session_token', token);
+    } else {
+      sessionStorage.removeItem('chainkit_session_token');
+    }
+  }
+}
+
+export function getSessionToken(): string | null {
+  if (!inMemorySessionToken && typeof window !== 'undefined') {
+    inMemorySessionToken = sessionStorage.getItem('chainkit_session_token');
+  }
+  return inMemorySessionToken;
+}
+
 async function fetchFromApi<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE}${path}`;
   const headers = new Headers(options.headers || {});
@@ -125,9 +158,10 @@ async function fetchFromApi<T>(path: string, options: RequestInit = {}): Promise
     headers.set('Content-Type', 'application/json');
   }
 
-  // Inject in-memory API key if available
-  if (inMemoryApiKey && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${inMemoryApiKey}`);
+  // Inject session token or API key if available
+  const activeCredential = getSessionToken() || inMemoryApiKey;
+  if (activeCredential && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${activeCredential}`);
   }
 
   const response = await fetch(url, { ...options, headers });
@@ -145,6 +179,52 @@ async function fetchFromApi<T>(path: string, options: RequestInit = {}): Promise
 export const apiClient = {
   setApiKey,
   getApiKey,
+  setSessionToken,
+  getSessionToken,
+
+  /**
+   * Request a 6-digit verification code sent to developer's email.
+   */
+  async sendOtp(email: string): Promise<{ success: boolean; message: string; debugCode?: string }> {
+    return fetchFromApi<{ success: boolean; message: string; debugCode?: string }>('/auth/otp/send', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  /**
+   * Verify the 6-digit code and exchange for a session token.
+   */
+  async verifyOtp(email: string, code: string): Promise<AuthResponse> {
+    const res = await fetchFromApi<AuthResponse>('/auth/otp/verify', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    });
+    if (res.token) {
+      setSessionToken(res.token);
+    }
+    return res;
+  },
+
+  /**
+   * Retrieves active session user profile and projects.
+   */
+  async getMe(): Promise<{ authenticated: boolean; user?: User; projects?: any[] }> {
+    return fetchFromApi<{ authenticated: boolean; user?: User; projects?: any[] }>('/auth/me');
+  },
+
+  /**
+   * Invalidates active session.
+   */
+  async logout(): Promise<void> {
+    try {
+      await fetchFromApi('/auth/logout', { method: 'POST' });
+    } catch {
+      // Ignore network errors on logout
+    } finally {
+      setSessionToken(null);
+    }
+  },
 
   /**
    * Creates a new project and returns the project entity with initial key.

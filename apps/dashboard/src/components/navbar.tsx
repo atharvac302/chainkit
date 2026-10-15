@@ -15,9 +15,12 @@ import {
   BookOpen,
   Activity,
   ExternalLink,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/components/auth-context';
 
 interface NavItem {
   title: string;
@@ -40,6 +43,7 @@ const navItems: NavItem[] = [
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   // Close mobile drawer on route change
   React.useEffect(() => {
@@ -94,9 +98,33 @@ export function Navbar() {
             <span className="font-medium text-slate-700">API Operational</span>
           </div>
 
-          <div className="hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary border border-primary/20">
-            CK
-          </div>
+          {user ? (
+            <div className="hidden sm:flex items-center space-x-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-xs">
+                {(user.name || user.email).charAt(0).toUpperCase()}
+              </div>
+              <span className="hidden lg:inline-block text-xs font-semibold text-slate-900 max-w-[140px] truncate">
+                {user.email}
+              </span>
+              <button
+                onClick={() => logout()}
+                title="Sign Out"
+                aria-label="Sign out of developer console"
+                className="flex items-center space-x-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-red-600 focus:outline-none focus:ring-1 focus:ring-primary shadow-xs transition-colors"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Sign Out</span>
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="hidden sm:inline-flex items-center space-x-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              <span>Sign In</span>
+            </Link>
+          )}
 
           {/* Hamburger toggle button for Mobile */}
           <button
@@ -180,7 +208,47 @@ export function Navbar() {
               })}
             </nav>
 
-            <div className="mt-8 pt-4 border-t border-slate-200 space-y-2 text-xs text-slate-600">
+            {/* Mobile User Profile & Auth */}
+            <div className="mt-6 pt-4 border-t border-slate-200">
+              {user ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-xs">
+                      {(user.name || user.email).charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="truncate text-xs font-semibold text-slate-900 leading-tight">
+                        {user.name || 'Developer'}
+                      </span>
+                      <span className="truncate text-[11px] text-slate-500">
+                        {user.email}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full flex items-center justify-center space-x-1.5 rounded-lg border border-red-200 bg-red-50 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center space-x-2 rounded-xl bg-primary py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-primary/90 transition-colors"
+                >
+                  <LogIn className="h-4 w-4" />
+                  <span>Sign In with Email OTP</span>
+                </Link>
+              )}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-slate-200 space-y-2 text-xs text-slate-600">
               <p className="font-semibold text-slate-900">Legal & Support</p>
               <ul className="space-y-1.5">
                 <li>

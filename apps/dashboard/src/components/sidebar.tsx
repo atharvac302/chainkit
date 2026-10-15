@@ -13,9 +13,12 @@ import {
   Boxes,
   ShieldCheck,
   ExternalLink,
+  LogOut,
+  LogIn,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/components/auth-context';
 
 interface NavItem {
   title: string;
@@ -62,6 +65,7 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   return (
     <aside className="hidden md:flex sticky top-0 h-screen w-64 flex-col border-r border-slate-200 bg-white">
@@ -138,8 +142,8 @@ export function Sidebar() {
       </nav>
 
       {/* Network / Status Indicator */}
-      <div className="border-t border-slate-200 p-4">
-        <div className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200/80 p-2.5 text-xs">
+      <div className="border-t border-slate-200 p-3 space-y-2">
+        <div className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200/80 p-2 text-xs">
           <div className="flex items-center space-x-2">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -147,8 +151,43 @@ export function Sidebar() {
             </span>
             <span className="font-medium text-slate-800">Sepolia Testnet</span>
           </div>
-          <ShieldCheck className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
         </div>
+
+        {/* User Session Profile & Logout */}
+        {user ? (
+          <div className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 p-2">
+            <div className="flex items-center space-x-2 min-w-0">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-xs">
+                {(user.name || user.email).charAt(0).toUpperCase()}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="truncate text-xs font-semibold text-slate-900 leading-tight">
+                  {user.name || 'Developer'}
+                </span>
+                <span className="truncate text-[10px] text-slate-500">
+                  {user.email}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => logout()}
+              title="Sign Out"
+              aria-label="Sign out of developer console"
+              className="rounded p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 focus:outline-none focus:ring-1 focus:ring-red-500 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <Link
+            href="/login"
+            className="flex items-center justify-center space-x-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-primary/90 transition-colors"
+          >
+            <LogIn className="h-3.5 w-3.5" />
+            <span>Sign In with OTP</span>
+          </Link>
+        )}
       </div>
     </aside>
   );
