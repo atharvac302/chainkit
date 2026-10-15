@@ -14,6 +14,8 @@ declare module 'fastify' {
     projectId?: string;
     environment?: string;
     apiKeyId?: string;
+    userId?: string;
+    userEmail?: string;
   }
 }
 

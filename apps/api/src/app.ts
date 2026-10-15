@@ -20,6 +20,7 @@ import projectRoutes from './modules/projects/routes.js';
 import apiKeyRoutes from './modules/api-keys/routes.js';
 import recordRoutes from './modules/records/routes.js';
 import transactionRoutes from './modules/transactions/routes.js';
+import authRoutes from './modules/auth/routes.js';
 
 export interface BuildAppOptions extends FastifyServerOptions {
   skipDatabase?: boolean;
@@ -57,6 +58,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.decorateRequest('projectId', undefined);
   app.decorateRequest('environment', undefined);
   app.decorateRequest('apiKeyId', undefined);
+  app.decorateRequest('userId', undefined);
+  app.decorateRequest('userEmail', undefined);
 
   app.addHook('onRequest', async (request, reply) => {
     request.requestId = request.id;
@@ -143,6 +146,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(apiKeyRoutes, { prefix: '/v1' });
   await app.register(recordRoutes, { prefix: '/v1' });
   await app.register(transactionRoutes, { prefix: '/v1' });
+  await app.register(authRoutes, { prefix: '/v1' });
 
   // 8. Global Error Handler
   app.setErrorHandler(errorHandler);

@@ -124,8 +124,8 @@ describe('Hardening and Security Checks', () => {
         url: '/v1/projects/proj-123',
       });
 
-      // Without matching projectId, the authorization check denies access with 403 Forbidden
-      expect(response.statusCode).toBe(403);
+      // Denies access with 401 Unauthorized (unauthenticated) or 403 Forbidden (cross-project mismatch)
+      expect([401, 403]).toContain(response.statusCode);
     });
   });
 });

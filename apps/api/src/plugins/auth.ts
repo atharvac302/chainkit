@@ -5,9 +5,10 @@
  */
 
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
+import fp from 'fastify-plugin';
 import { env } from '../config/env.js';
 import { unauthorizedError } from '../lib/errors.js';
-import { verifyApiKeySecret } from '../lib/crypto.js';
+import { sha256Hex, verifyApiKeySecret } from '../lib/crypto.js';
 
 const lastUsedCache = new Map<string, number>();
 const LAST_USED_DEBOUNCE_MS = 3600_000; // 1 hour
@@ -22,11 +23,11 @@ declare module 'fastify' {
 }
 
 /**
- * Extracts raw API key from Authorization header or X-API-Key header.
+ * Extracts raw credential from Authorization header or X-API-Key header.
  * Redacts any sensitive data if errors occur.
  *
  * @param request - Incoming Fastify request.
- * @returns Raw API key string or null if not provided.
+ * @returns Raw key/token string or null if not provided.
  */
 function extractApiKey(request: FastifyRequest): string | null {
   const authHeader = request.headers.authorization;
@@ -34,7 +35,7 @@ function extractApiKey(request: FastifyRequest): string | null {
     if (authHeader.startsWith('Bearer ')) {
       return authHeader.slice(7).trim();
     }
-    if (authHeader.startsWith('ck_')) {
+    if (authHeader.startsWith('ck_') || authHeader.startsWith('cksess_')) {
       return authHeader.trim();
     }
   }
@@ -42,6 +43,11 @@ function extractApiKey(request: FastifyRequest): string | null {
   const apiKeyHeader = request.headers['x-api-key'];
   if (typeof apiKeyHeader === 'string' && apiKeyHeader.trim().length > 0) {
     return apiKeyHeader.trim();
+  }
+
+  const sessionHeader = request.headers['x-session-token'];
+  if (typeof sessionHeader === 'string' && sessionHeader.trim().length > 0) {
+    return sessionHeader.trim();
   }
 
   return null;
@@ -71,7 +77,7 @@ function parseApiKey(fullKey: string): { prefix: string; secret: string } | null
 }
 
 /**
- * Core authentication logic verifying an API key against the database.
+ * Core authentication logic verifying an API key or dashboard session token against the database.
  */
 export async function authenticateApiKey(
   request: FastifyRequest,
@@ -79,9 +85,36 @@ export async function authenticateApiKey(
 ): Promise<void> {
   const rawKey = extractApiKey(request);
   if (!rawKey) {
-    throw unauthorizedError('Missing API key. Please provide Bearer token in Authorization header.');
+    throw unauthorizedError('Missing authentication. Please provide Bearer token in Authorization header.');
   }
 
+  // 1. Session Token Authentication (Dashboard UI)
+  if (rawKey.startsWith('cksess_')) {
+    const tokenHash = sha256Hex(rawKey + env.API_KEY_PEPPER);
+    const session = await request.server.prisma.session.findUnique({
+      where: { tokenHash },
+      include: {
+        user: {
+          include: {
+            projects: true,
+          },
+        },
+      },
+    });
+
+    if (!session || session.expiresAt < new Date()) {
+      throw unauthorizedError('Session expired or invalid. Please sign in again.');
+    }
+
+    request.userId = session.user.id;
+    request.userEmail = session.user.email;
+    if (session.user.projects.length > 0 && session.user.projects[0]) {
+      request.projectId = session.user.projects[0].id;
+    }
+    return;
+  }
+
+  // 2. API Key Authentication (Developer Applications & SDK)
   const parsed = parseApiKey(rawKey);
   if (!parsed) {
     throw unauthorizedError('Malformed API key format.');
@@ -133,7 +166,7 @@ export async function authenticateApiKey(
  * Fastify authentication plugin.
  * Registers global preHandler hook checking for valid credentials on non-public routes.
  */
-export const authPlugin: FastifyPluginAsync = async (fastify) => {
+const authPluginBase: FastifyPluginAsync = async (fastify) => {
   fastify.decorate('authenticate', authenticateApiKey);
 
   fastify.addHook('preHandler', async (request, reply) => {
@@ -142,8 +175,8 @@ export const authPlugin: FastifyPluginAsync = async (fastify) => {
       return;
     }
 
-    // Skip routes configured as public
-    if (request.routeOptions.config?.isPublic === true) {
+    // Skip routes configured as public or unmatched routes
+    if (request.routeOptions.config?.isPublic === true || !request.routeOptions.url) {
       return;
     }
 
@@ -161,5 +194,9 @@ export const authPlugin: FastifyPluginAsync = async (fastify) => {
     await authenticateApiKey(request, reply);
   });
 };
+
+export const authPlugin = fp(authPluginBase, {
+  name: 'chainkit-auth',
+});
 
 export default authPlugin;

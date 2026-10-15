@@ -7,14 +7,54 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  projects  Project[]
+  sessions  Session[]
+
+  @@map("users")
+}
+
+model EmailOtp {
+  id        String   @id @default(cuid())
+  email     String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@map("email_otps")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
 model Project {
   id                 String             @id @default(cuid())
   name               String
+  userId             String?
   createdAt          DateTime           @default(now())
+  user               User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
   apiKeys            ApiKey[]
   records            Record[]
   idempotencyEntries IdempotencyEntry[]
 
+  @@index([userId])
   @@map("projects")
 }
 
