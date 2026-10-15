@@ -1,0 +1,31 @@
+{
+  "name": "chainkit",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "typecheck": "tsc --build",
+    "test": "npm run test --workspaces --if-present",
+    "test:contracts": "npm run test -w packages/contracts",
+    "test:api": "npm run test -w apps/api",
+    "test:sdk": "npm run test -w packages/sdk-typescript",
+    "build": "npm run build --workspaces --if-present",
+    "dev:api": "npm run dev -w apps/api",
+    "dev:dashboard": "npm run dev -w apps/dashboard"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "eslint": "^9.5.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
