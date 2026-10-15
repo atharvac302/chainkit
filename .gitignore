@@ -33,3 +33,18 @@ coverage/
 
 # Logs
 *.log
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Turborepo
+.turbo/
+
+# ESLint
+.eslintcache
+
+# Local database files
+*.db
+*.db-journal
+apps/api/dev.db
+apps/api/prisma/dev.db
