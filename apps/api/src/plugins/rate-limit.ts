@@ -11,6 +11,7 @@ import type { FastifyPluginAsync } from 'fastify';
  */
 export const rateLimitPlugin: FastifyPluginAsync = async (fastify) => {
   await fastify.register(rateLimit, {
+    hook: 'preHandler',
     max: 100,
     timeWindow: 60 * 1000, // 1 minute
     cache: 10000,

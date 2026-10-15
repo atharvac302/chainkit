@@ -31,16 +31,16 @@ export const databasePlugin: FastifyPluginAsync = async (fastify) => {
 
   try {
     await prisma.$connect();
-    fastify.log.info('Connected to PostgreSQL database via Prisma');
+    fastify.log.info('Connected to database via Prisma');
   } catch (error) {
-    fastify.log.error({ err: error }, 'Failed to connect to PostgreSQL database on startup');
+    fastify.log.error({ err: error }, 'Failed to connect to database on startup');
     throw error;
   }
 
   fastify.decorate('prisma', prisma);
 
   fastify.addHook('onClose', async (instance) => {
-    instance.log.info('Disconnecting from PostgreSQL database...');
+    instance.log.info('Disconnecting from database...');
     await instance.prisma.$disconnect();
   });
 };

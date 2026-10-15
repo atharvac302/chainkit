@@ -16,6 +16,12 @@ async function start(): Promise<void> {
 
     const shutdown = async (signal: string) => {
       logger.info({ signal }, `Received ${signal}, shutting down gracefully...`);
+      const forceTimer = setTimeout(() => {
+        logger.error('Forced shutdown after timeout');
+        process.exit(1);
+      }, 10_000);
+      forceTimer.unref();
+
       try {
         await app.close();
         logger.info('ChainKit API server closed successfully');
@@ -41,6 +47,15 @@ async function start(): Promise<void> {
     process.exit(1);
   }
 }
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error({ reason, promise }, 'Unhandled promise rejection');
+});
+
+process.on('uncaughtException', (error) => {
+  logger.fatal({ err: error }, 'Uncaught exception — shutting down');
+  process.exit(1);
+});
 
 // Start server
 void start();

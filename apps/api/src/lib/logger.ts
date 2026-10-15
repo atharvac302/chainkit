@@ -10,8 +10,10 @@ import pino, { type Logger, type LoggerOptions } from 'pino';
 export const REDACT_PATHS = [
   'req.headers.authorization',
   'req.headers.cookie',
+  'req.headers.x-api-key',
   'headers.authorization',
   'headers.cookie',
+  'headers.x-api-key',
   'authorization',
   'apiKey',
   'secret',
@@ -25,6 +27,7 @@ export const REDACT_PATHS = [
   '*.privateKey',
   '*.relayerPrivateKey',
   '*.authorization',
+  '*.x-api-key',
 ];
 
 /**

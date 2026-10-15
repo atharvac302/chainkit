@@ -4,8 +4,9 @@
 
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
+import { env } from '../../config/env.js';
 import { generateApiKey } from '../../lib/crypto.js';
-import { forbiddenError, notFoundError } from '../../lib/errors.js';
+import { forbiddenError, notFoundError, unauthorizedError } from '../../lib/errors.js';
 
 const createProjectSchema = z.object({
   name: z.string().trim().min(1, 'Project name is required').max(100, 'Project name is too long'),
@@ -25,7 +26,23 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post(
     '/projects',
     {
-      config: { isPublic: true },
+      config: {
+        isPublic: true,
+        rateLimit: {
+          max: 10,
+          timeWindow: 60 * 1000,
+        },
+      },
+      preHandler: async (request) => {
+        if (env.ADMIN_TOKEN) {
+          const adminToken = request.headers['x-admin-token'];
+          if (!adminToken || adminToken !== env.ADMIN_TOKEN) {
+            throw unauthorizedError('Missing or invalid X-Admin-Token header');
+          }
+        } else {
+          request.log.warn('ADMIN_TOKEN is not configured; allowing project creation without admin token');
+        }
+      },
     },
     async (request, reply) => {
       const parsedBody = createProjectSchema.safeParse(request.body);
@@ -86,7 +103,7 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
     const { projectId } = parsedParams.data;
 
     // Ensure client cannot access another project's resources
-    if (request.projectId && request.projectId !== projectId) {
+    if (!request.projectId || request.projectId !== projectId) {
       throw forbiddenError('You do not have permission to access this project');
     }
 

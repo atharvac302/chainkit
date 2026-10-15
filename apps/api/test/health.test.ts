@@ -78,15 +78,13 @@ describe('Health and System Routes', () => {
       expect(response.headers['x-request-id']).toBe(customId);
     });
 
-    it('should support root /health alias without prefix', async () => {
+    it('should return 404 for root /health (unprefixed route removed)', async () => {
       const response = await app.inject({
         method: 'GET',
         url: '/health',
       });
 
-      expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.body);
-      expect(body.status).toBe('ok');
+      expect(response.statusCode).toBe(404);
     });
   });
 

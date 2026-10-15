@@ -3,7 +3,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
+import 'fastify';
 
 /**
  * Fastify type augmentation to supply context fields on FastifyRequest.
@@ -26,23 +26,3 @@ export function generateRequestId(): string {
   return randomUUID();
 }
 
-/**
- * Request context plugin to initialize request tracing and attach context headers.
- */
-export const requestContextPlugin: FastifyPluginAsync = async (fastify) => {
-  fastify.decorateRequest('requestId', '');
-  fastify.decorateRequest('projectId', undefined);
-  fastify.decorateRequest('environment', undefined);
-  fastify.decorateRequest('apiKeyId', undefined);
-
-  fastify.addHook('onRequest', async (request: FastifyRequest, reply) => {
-    const headerRequestId = request.headers['x-request-id'];
-    const requestId =
-      typeof headerRequestId === 'string' && headerRequestId.trim().length > 0
-        ? headerRequestId.trim()
-        : generateRequestId();
-
-    request.requestId = requestId;
-    reply.header('x-request-id', requestId);
-  });
-};

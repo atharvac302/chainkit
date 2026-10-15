@@ -130,11 +130,12 @@ export function errorHandler(
       request.log.warn({ err: error, requestId }, error.message);
     }
 
+    const isServerError = error.statusCode >= 500;
     reply.status(error.statusCode).send({
       error: {
         code: error.code,
         message: error.message,
-        details: error.details,
+        ...(isServerError ? {} : { details: error.details }),
         requestId,
       },
     });

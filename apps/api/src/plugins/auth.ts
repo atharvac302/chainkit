@@ -9,6 +9,9 @@ import { env } from '../config/env.js';
 import { unauthorizedError } from '../lib/errors.js';
 import { verifyApiKeySecret } from '../lib/crypto.js';
 
+const lastUsedCache = new Map<string, number>();
+const LAST_USED_DEBOUNCE_MS = 3600_000; // 1 hour
+
 declare module 'fastify' {
   interface FastifyContextConfig {
     isPublic?: boolean;
@@ -113,15 +116,17 @@ export async function authenticateApiKey(
   request.environment = apiKeyRecord.environment;
   request.apiKeyId = apiKeyRecord.id;
 
-  // Asynchronously record last used timestamp without blocking request processing
-  request.server.prisma.apiKey
-    .update({
-      where: { id: apiKeyRecord.id },
-      data: { lastUsedAt: new Date() },
-    })
-    .catch((err) => {
-      request.log.warn({ err }, 'Failed to update apiKey lastUsedAt timestamp');
-    });
+  // Asynchronously record last used timestamp with 1-hour debounce
+  const now = Date.now();
+  const lastUpdated = lastUsedCache.get(apiKeyRecord.id) ?? 0;
+  if (now - lastUpdated > LAST_USED_DEBOUNCE_MS) {
+    lastUsedCache.set(apiKeyRecord.id, now);
+    request.server.prisma.apiKey
+      .update({ where: { id: apiKeyRecord.id }, data: { lastUsedAt: new Date() } })
+      .catch((err) => {
+        request.log.warn({ err }, 'Failed to update apiKey lastUsedAt');
+      });
+  }
 }
 
 /**
@@ -148,8 +153,8 @@ export const authPlugin: FastifyPluginAsync = async (fastify) => {
       return;
     }
 
-    // Skip initial project creation onboarding route
-    if (request.method === 'POST' && url === '/v1/projects') {
+    // Skip Swagger documentation routes
+    if (url.startsWith('/docs') || url.startsWith('/docs/')) {
       return;
     }
 

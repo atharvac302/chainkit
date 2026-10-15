@@ -5,6 +5,7 @@
 
 import fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { env } from './config/env.js';
@@ -34,12 +35,18 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const { skipDatabase = false, ...fastifyOpts } = options;
 
   const app = fastify({
+    trustProxy: true,
+    bodyLimit: 524288,
     logger: loggerOptions,
     genReqId: (req) => {
       const header = req.headers['x-request-id'];
-      return typeof header === 'string' && header.trim().length > 0
-        ? header.trim()
-        : generateRequestId();
+      if (typeof header === 'string') {
+        const trimmed = header.trim();
+        if (trimmed.length > 0 && trimmed.length <= 128 && /^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+          return trimmed;
+        }
+      }
+      return generateRequestId();
     },
     disableRequestLogging: false,
     ...fastifyOpts,
@@ -60,7 +67,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const isAllOrigins = env.ALLOWED_ORIGINS.includes('*');
   await app.register(cors, {
     origin: isAllOrigins ? '*' : env.ALLOWED_ORIGINS,
-    credentials: true,
+    credentials: !isAllOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type',
@@ -72,36 +79,49 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     exposedHeaders: ['X-Request-ID', 'Retry-After'],
   });
 
-  // 3. API Documentation with Swagger
-  await app.register(swagger, {
-    openapi: {
-      info: {
-        title: 'ChainKit Blockchain-as-a-Service API',
-        description: 'Enterprise developer platform for immutable blockchain notarization and anchoring',
-        version: '0.1.0',
+  // 3. Security Headers with Helmet
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"], // swagger-ui needs inline scripts
+        styleSrc: ["'self'", "'unsafe-inline'"], // swagger-ui needs inline styles
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'"],
       },
-      components: {
-        securitySchemes: {
-          apiKeyAuth: {
-            type: 'http',
-            scheme: 'bearer',
-            bearerFormat: 'API Key',
+    },
+    crossOriginEmbedderPolicy: false, // Allow Swagger UI assets
+  });
+
+  // 4. API Documentation with Swagger
+  if (env.NODE_ENV !== 'production') {
+    await app.register(swagger, {
+      openapi: {
+        info: {
+          title: 'ChainKit Blockchain-as-a-Service API',
+          description: 'Enterprise developer platform for immutable blockchain notarization and anchoring',
+          version: '0.1.0',
+        },
+        components: {
+          securitySchemes: {
+            apiKeyAuth: {
+              type: 'http',
+              scheme: 'bearer',
+              bearerFormat: 'API Key',
+            },
           },
         },
       },
-    },
-  });
+    });
 
-  await app.register(swaggerUi, {
-    routePrefix: '/docs',
-    uiConfig: {
-      docExpansion: 'list',
-      deepLinking: true,
-    },
-  });
-
-  // 4. Rate Limiting Plugin
-  await app.register(rateLimitPlugin);
+    await app.register(swaggerUi, {
+      routePrefix: '/docs',
+      uiConfig: {
+        docExpansion: 'list',
+        deepLinking: true,
+      },
+    });
+  }
 
   // 5. Database Plugin (Prisma)
   if (!skipDatabase) {
@@ -111,10 +131,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // 6. Authentication Plugin
   await app.register(authPlugin);
 
-  // 7. Route Modules
-  // Health checks registered at /v1 and root
+  // 7. Rate Limiting Plugin (registered after auth so preHandler has populated request.apiKeyId)
+  await app.register(rateLimitPlugin);
+
+  // 8. Route Modules
+  // Health checks registered under /v1
   await app.register(healthRoutes, { prefix: '/v1' });
-  await app.register(healthRoutes);
 
   // Core API modules under /v1
   await app.register(projectRoutes, { prefix: '/v1' });
