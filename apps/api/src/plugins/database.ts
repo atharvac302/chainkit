@@ -4,6 +4,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import type { FastifyPluginAsync } from 'fastify';
+import fp from 'fastify-plugin';
 
 /**
  * Fastify instance augmentation for the Prisma database client.
@@ -17,7 +18,7 @@ declare module 'fastify' {
 /**
  * Fastify plugin establishing Prisma database connection and graceful disconnection.
  */
-export const databasePlugin: FastifyPluginAsync = async (fastify) => {
+const databasePluginBase: FastifyPluginAsync = async (fastify) => {
   const prisma = new PrismaClient({
     log:
       process.env.NODE_ENV === 'development'
@@ -44,5 +45,9 @@ export const databasePlugin: FastifyPluginAsync = async (fastify) => {
     await instance.prisma.$disconnect();
   });
 };
+
+export const databasePlugin = fp(databasePluginBase, {
+  name: 'chainkit-database',
+});
 
 export default databasePlugin;
