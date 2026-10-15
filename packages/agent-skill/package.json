@@ -1,0 +1,9 @@
+{
+  "name": "@chainkit/agent-skill",
+  "version": "0.1.0",
+  "description": "ChainKit Agent Skill specification and guidelines for AI coding agents",
+  "private": true,
+  "files": [
+    "SKILL.md"
+  ]
+}
