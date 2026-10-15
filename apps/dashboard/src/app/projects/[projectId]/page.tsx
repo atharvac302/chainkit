@@ -60,12 +60,15 @@ export default function ProjectDetailPage() {
   }
 
   const projectRecords = recordsData?.records ?? [];
+  const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const apiEndpointUrl = rawApiUrl.endsWith('/v1') ? rawApiUrl : `${rawApiUrl}/v1`;
+  const apiDocsUrl = rawApiUrl.endsWith('/v1') ? `${rawApiUrl.slice(0, -3)}/docs` : `${rawApiUrl}/docs`;
   const sdkInstallCode = `npm install @chainkit/sdk`;
   const quickstartSnippet = `import { ChainKit } from '@chainkit/sdk';
 
 const chainkit = new ChainKit({
   apiKey: process.env.CHAINKIT_API_KEY,
-  baseUrl: 'http://localhost:3001'
+  baseUrl: '${rawApiUrl}'
 });
 
 // Anchor record content
@@ -212,13 +215,13 @@ console.log('Anchored Record ID:', record.recordId);`;
                   API Endpoint Base URL
                 </label>
                 <div className="flex items-center justify-between rounded-lg bg-slate-900 p-3 font-mono text-xs text-slate-100">
-                  <span>http://localhost:3001/v1</span>
+                  <span>{apiEndpointUrl}</span>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className="h-7 w-7 p-0 text-slate-400 hover:text-white hover:bg-slate-800"
-                    onClick={() => handleCopy('http://localhost:3001/v1', 'api-url')}
+                    onClick={() => handleCopy(apiEndpointUrl, 'api-url')}
                   >
                     {copiedSnippet === 'api-url' ? (
                       <Check className="h-4 w-4 text-emerald-400" />
@@ -231,7 +234,7 @@ console.log('Anchored Record ID:', record.recordId);`;
 
               <div className="pt-2">
                 <a
-                  href="http://localhost:3001/docs"
+                  href={apiDocsUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center text-xs font-semibold text-primary hover:underline"

@@ -24,6 +24,8 @@ interface NavItem {
   external?: boolean;
 }
 
+const apiDocsUrl = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/docs` : 'http://localhost:3001/docs';
+
 const navItems: NavItem[] = [
   {
     title: 'Dashboard',
@@ -52,7 +54,7 @@ const navItems: NavItem[] = [
   },
   {
     title: 'Docs',
-    href: 'http://localhost:3001/docs',
+    href: apiDocsUrl,
     icon: BookOpen,
     external: true,
   },

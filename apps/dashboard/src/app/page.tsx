@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
   FolderKanban,
@@ -25,7 +26,10 @@ import { formatDate, truncateHash, truncateId } from '@/lib/utils';
 import { EmptyState, LoadingState, ErrorState } from '@/components/ui-states';
 
 export default function DashboardHomePage() {
+  const router = useRouter();
   const [copiedSnippet, setCopiedSnippet] = React.useState<string | null>(null);
+  const apiDocsUrl = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/docs` : 'http://localhost:3001/docs';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
   const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
     queryKey: ['projects'],
@@ -82,7 +86,7 @@ export default function DashboardHomePage() {
             </Link>
           </Button>
           <Button asChild variant="outline">
-            <a href="http://localhost:3001/docs" target="_blank" rel="noreferrer">
+            <a href={apiDocsUrl} target="_blank" rel="noreferrer">
               <BookOpen className="mr-2 h-4 w-4 text-slate-500" />
               API Docs
             </a>
@@ -250,7 +254,7 @@ export default function DashboardHomePage() {
           ) : isRecordsError ? (
             <ErrorState
               title="Unable to fetch records"
-              message="Check if the ChainKit API server is running at http://localhost:3001."
+              message={`Check if the ChainKit API server is running at ${apiUrl}.`}
               onRetry={() => refetchRecords()}
             />
           ) : !recordsData?.records || recordsData.records.length === 0 ? (
@@ -258,7 +262,7 @@ export default function DashboardHomePage() {
               title="No records notarized yet"
               description="Anchor your first document or event hash using the SDK, CLI, or REST API."
               actionLabel="Go to Record Explorer"
-              onAction={() => window.location.assign('/records')}
+              onAction={() => router.push('/records')}
             />
           ) : (
             <div className="overflow-x-auto">

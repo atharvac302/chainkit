@@ -71,19 +71,41 @@ export function getStatusColor(status: string | null | undefined): string {
     case 'confirmed':
     case 'active':
     case 'success':
-      return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+      return 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20';
     case 'pending':
     case 'submitting':
     case 'processing':
-      return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+      return 'bg-amber-500/10 text-amber-700 border-amber-500/20';
     case 'failed':
     case 'revoked':
     case 'error':
-      return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+      return 'bg-rose-500/10 text-rose-700 border-rose-500/20';
     case 'created':
     case 'draft':
-      return 'bg-slate-500/10 text-slate-300 border-slate-500/20';
+      return 'bg-slate-500/10 text-slate-600 border-slate-500/20';
     default:
       return 'bg-muted text-muted-foreground border-border';
   }
+}
+
+/**
+ * Returns the public block explorer URL for a given transaction hash and chain ID.
+ *
+ * @param chainId - EVM network chain ID.
+ * @param txHash - Transaction hash string.
+ * @returns Public explorer URL for the transaction.
+ */
+export function getExplorerUrl(chainId: number, txHash: string | null | undefined): string {
+  if (!txHash) return '#';
+  const explorers: Record<number, string> = {
+    1: 'https://etherscan.io',
+    11155111: 'https://sepolia.etherscan.io',
+    137: 'https://polygonscan.com',
+    80001: 'https://mumbai.polygonscan.com',
+    8453: 'https://basescan.org',
+    84532: 'https://sepolia.basescan.org',
+    42161: 'https://arbiscan.io',
+  };
+  const base = explorers[chainId] || 'https://sepolia.etherscan.io';
+  return `${base}/tx/${txHash}`;
 }

@@ -9,6 +9,8 @@ export const metadata = {
 };
 
 export default function NotFound() {
+  const apiDocsUrl = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/docs` : 'http://localhost:3001/docs';
+
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-6 ring-1 ring-primary/20">
@@ -37,7 +39,7 @@ export default function NotFound() {
 
         <Button asChild variant="outline">
           <a
-            href="http://localhost:3001/docs"
+            href={apiDocsUrl}
             target="_blank"
             rel="noreferrer"
             className="flex items-center"

@@ -36,6 +36,7 @@ export default function DataDeletionPage() {
     setErrors({});
     setIsSubmitting(true);
 
+    // TODO: Replace with actual API call to POST /v1/data-deletion when backend endpoint is implemented
     // Simulate verified deletion ticket creation
     setTimeout(() => {
       setIsSubmitting(false);

@@ -47,12 +47,19 @@ export default function TransactionsPage() {
     }
   };
 
-  const getExplorerUrl = (txHash: string | null, chainId: number) => {
+  const getExplorerUrl = (chainId: number, txHash: string | null) => {
     if (!txHash) return '#';
-    if (chainId === 11155111) {
-      return `https://sepolia.etherscan.io/tx/${txHash}`;
-    }
-    return `https://etherscan.io/tx/${txHash}`;
+    const explorers: Record<number, string> = {
+      1: 'https://etherscan.io',
+      11155111: 'https://sepolia.etherscan.io',
+      137: 'https://polygonscan.com',
+      80001: 'https://mumbai.polygonscan.com',
+      8453: 'https://basescan.org',
+      84532: 'https://sepolia.basescan.org',
+      42161: 'https://arbiscan.io',
+    };
+    const base = explorers[chainId] || 'https://sepolia.etherscan.io';
+    return `${base}/tx/${txHash}`;
   };
 
   return (
@@ -165,7 +172,7 @@ export default function TransactionsPage() {
                         {tx.transactionHash ? (
                           <div className="flex items-center space-x-2">
                             <a
-                              href={getExplorerUrl(tx.transactionHash, tx.chainId)}
+                              href={getExplorerUrl(tx.chainId, tx.transactionHash)}
                               target="_blank"
                               rel="noreferrer"
                               className="text-primary hover:underline flex items-center gap-1 font-semibold"

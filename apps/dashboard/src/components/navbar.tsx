@@ -26,13 +26,15 @@ interface NavItem {
   external?: boolean;
 }
 
+const apiDocsUrl = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/docs` : 'http://localhost:3001/docs';
+
 const navItems: NavItem[] = [
   { title: 'Dashboard', href: '/', icon: LayoutDashboard },
   { title: 'Projects', href: '/projects', icon: FolderKanban },
   { title: 'API Keys', href: '/api-keys', icon: KeyRound },
   { title: 'Records', href: '/records', icon: FileCheck2 },
   { title: 'Transactions', href: '/transactions', icon: ArrowLeftRight },
-  { title: 'Docs', href: 'http://localhost:3001/docs', icon: BookOpen, external: true },
+  { title: 'Docs', href: apiDocsUrl, icon: BookOpen, external: true },
 ];
 
 export function Navbar() {

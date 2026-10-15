@@ -21,6 +21,20 @@ import { StatusBadge } from '@/components/status-badge';
 import { formatDate } from '@/lib/utils';
 import { LoadingState } from '@/components/ui-states';
 
+function getExplorerUrl(chainId: number, txHash: string): string {
+  const explorers: Record<number, string> = {
+    1: 'https://etherscan.io',
+    11155111: 'https://sepolia.etherscan.io',
+    137: 'https://polygonscan.com',
+    80001: 'https://mumbai.polygonscan.com',
+    8453: 'https://basescan.org',
+    84532: 'https://sepolia.basescan.org',
+    42161: 'https://arbiscan.io',
+  };
+  const base = explorers[chainId] || 'https://sepolia.etherscan.io';
+  return `${base}/tx/${txHash}`;
+}
+
 export default function RecordDetailPage() {
   const params = useParams();
   const recordId = (params?.recordId as string) || '';
@@ -107,7 +121,7 @@ export default function RecordDetailPage() {
         {transaction?.transactionHash && (
           <Button asChild variant="outline" size="sm" className="space-x-1.5 self-start sm:self-auto border-slate-300">
             <a
-              href={`https://sepolia.etherscan.io/tx/${transaction.transactionHash}`}
+              href={getExplorerUrl(transaction.chainId, transaction.transactionHash)}
               target="_blank"
               rel="noreferrer"
             >
