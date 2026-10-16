@@ -7,6 +7,7 @@ import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import { CookieBanner } from '@/components/cookie-banner';
 import { NetworkStatus } from '@/components/network-status';
+import { AuthGuard } from '@/components/auth-guard';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -71,7 +72,7 @@ export default function RootLayout({
 
               {/* Main Page Area */}
               <main id="main-content" className="flex-1 p-4 sm:p-6 lg:p-8">
-                {children}
+                <AuthGuard>{children}</AuthGuard>
               </main>
 
               {/* Comprehensive Footer */}

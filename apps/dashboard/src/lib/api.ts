@@ -138,17 +138,31 @@ export function setSessionToken(token: string | null): void {
   if (typeof window !== 'undefined') {
     if (token) {
       sessionStorage.setItem('chainkit_session_token', token);
+      document.cookie = `chainkit_session_token=${token}; path=/; max-age=2592000; SameSite=Lax`;
     } else {
       sessionStorage.removeItem('chainkit_session_token');
+      document.cookie = 'chainkit_session_token=; path=/; max-age=0; SameSite=Lax';
     }
   }
 }
 
 export function getSessionToken(): string | null {
-  if (!inMemorySessionToken && typeof window !== 'undefined') {
-    inMemorySessionToken = sessionStorage.getItem('chainkit_session_token');
+  if (inMemorySessionToken) {
+    return inMemorySessionToken;
   }
-  return inMemorySessionToken;
+  if (typeof window !== 'undefined') {
+    const fromSession = sessionStorage.getItem('chainkit_session_token');
+    if (fromSession) {
+      inMemorySessionToken = fromSession;
+      return fromSession;
+    }
+    const match = document.cookie.match(/(?:^|;\s*)chainkit_session_token=([^;]+)/);
+    if (match && match[1]) {
+      inMemorySessionToken = match[1];
+      return match[1];
+    }
+  }
+  return null;
 }
 
 async function fetchFromApi<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -164,7 +178,23 @@ async function fetchFromApi<T>(path: string, options: RequestInit = {}): Promise
     headers.set('Authorization', `Bearer ${activeCredential}`);
   }
 
-  const response = await fetch(url, { ...options, headers });
+  let response: Response;
+  try {
+    response = await fetch(url, { ...options, headers });
+  } catch (networkError) {
+    // If direct connect to API port failed, seamlessly fall back to Next.js rewrite proxy (/v1/...)
+    if (typeof window !== 'undefined') {
+      try {
+        const proxyUrl = `/v1${path}`;
+        response = await fetch(proxyUrl, { ...options, headers });
+      } catch {
+        throw networkError;
+      }
+    } else {
+      throw networkError;
+    }
+  }
+
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {

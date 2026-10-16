@@ -3,11 +3,13 @@
  * Ensures all required environment variables are present and typed at boot.
  */
 
+import path from 'node:path';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
-// Load environment variables from .env file
+// Load environment variables from root and apps/api/.env
 dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), 'apps/api/.env') });
 
 const INSECURE_PLACEHOLDER_PEPPERS = [
   'chainkit-default-development-pepper-minimum-16-chars',
